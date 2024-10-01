@@ -1,0 +1,85 @@
+name: Windows - Advanced RDP Setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: RDP Build Process
+    runs-on: windows-latest
+    timeout-minutes: 1440  # Set timeout to 24 hours (1440 minutes)
+
+    steps:
+      - name: Set Up PowerShell Execution Policy
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          Write-Host "PowerShell Execution Policy set to Bypass"
+
+      - name: Download and Install Essentials
+        shell: powershell
+        run: |
+          $url = "https://gitlab.com/chamod12/lm_win-10_github_rdp/-/raw/main/Downloads.bat"
+          $output = "Downloads.bat"
+          try {
+            Invoke-WebRequest -Uri $url -OutFile $output -ErrorAction Stop
+            Write-Host "Downloads.bat downloaded successfully."
+          } catch {
+            Write-Error "Failed to download Downloads.bat: $_"
+            Exit 1
+          }
+
+          try {
+            Start-Process -FilePath "./Downloads.bat" -Wait
+            Write-Host "Downloads.bat executed successfully."
+          } catch {
+            Write-Error "Failed to execute Downloads.bat: $_"
+            Exit 1
+          }
+
+          if (!(Test-Path "C:\Program Files\LiteManager\")) {
+            Write-Error "LiteManager installation failed."
+            Exit 1
+          } else {
+            Write-Host "LiteManager installed successfully."
+          }
+
+      - name: Connect to LiteManager
+        shell: powershell
+        run: |
+          $script = "show.bat"
+          if (Test-Path $script) {
+            try {
+              Start-Process -FilePath $script -Wait
+              Write-Host "Connected to LiteManager using $script."
+            } catch {
+              Write-Error "Failed to execute $script: $_"
+              Exit 1
+            }
+          } else {
+            Write-Error "$script not found."
+            Exit 1
+          }
+
+      - name: Start Time Counter
+        shell: powershell
+        run: |
+          $script = "loop.bat"
+          if (Test-Path $script) {
+            try {
+              Start-Process -FilePath $script -Wait
+              Write-Host "Time counter started with $script."
+            } catch {
+              Write-Error "Failed to execute $script: $_"
+              Exit 1
+            }
+          } else {
+            Write-Error "$script not found."
+            Exit 1
+          }
+
+      - name: Cleanup Temporary Files
+        shell: powershell
+        run: |
+          Remove-Item "Downloads.bat" -Force -ErrorAction SilentlyContinue
+          Write-Host "Temporary files cleaned up."
